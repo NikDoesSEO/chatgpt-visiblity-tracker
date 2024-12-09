@@ -9,11 +9,13 @@ from io import BytesIO
 
 class ChatGPTTracker:
     def __init__(self, api_key: str, brand: str, model: str = "gpt-3.5-turbo"):
-        # Initialize OpenAI client
-        self.client = OpenAI(api_key=api_key)
+        # Initialize OpenAI client with only the API key
+        self.client = OpenAI(
+            api_key=api_key,  # Only pass api_key
+        )
         self.brand = brand.lower()
         self.model = model
-        
+    
     def generate_prompts(self, query: str):
         """Generate different prompts to test brand visibility"""
         return [
