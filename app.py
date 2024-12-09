@@ -11,7 +11,6 @@ from io import BytesIO
 
 class WebsitePositionTracker:
     def __init__(self, api_key: str, target_website: str, model: str = "gpt-3.5-turbo"):
-        # Initialize OpenAI client with minimal configuration
         self.client = OpenAI(api_key=api_key)
         self.target_website = target_website.lower()
         self.model = model
