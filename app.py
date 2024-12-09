@@ -1,4 +1,5 @@
 import streamlit as st
+import openai
 from openai import OpenAI
 import pandas as pd
 from datetime import datetime
@@ -9,10 +10,9 @@ from io import BytesIO
 
 class ChatGPTTracker:
     def __init__(self, api_key: str, brand: str, model: str = "gpt-3.5-turbo"):
-        # Initialize OpenAI client with only the API key
-        self.client = OpenAI(
-            api_key=api_key,  # Only pass api_key
-        )
+        # Initialize OpenAI client
+        openai.api_key = api_key  # Set the API key directly
+        self.client = OpenAI()    # Create client without parameters
         self.brand = brand.lower()
         self.model = model
     
@@ -105,6 +105,7 @@ class ChatGPTTracker:
         }
 
 def main():
+    st.set_page_config(page_title="Brand Visibility Checker", layout="wide")
     st.title("Brand Visibility Checker")
     st.markdown("Track how often and where your brand appears in ChatGPT responses")
     
