@@ -11,20 +11,19 @@ from io import BytesIO
 
 class WebsitePositionTracker:
     def __init__(self, api_key: str, target_website: str, model: str = "gpt-3.5-turbo"):
-    self.client = OpenAI(api_key=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
-)  # Pass API key directly here
-    self.target_website = target_website.lower()
-    self.model = model
-    self.results = []
-    
-    self.rate_limits = {
-        "gpt-3.5-turbo": 0.02,
-        "gpt-4": 0.12,
-        "gpt-4o": 0.04,
-        "gpt-4o-mini": 0.04,
-        "gpt-4-turbo": 0.04
-    }
-    self.rate_limit = self.rate_limits.get(model, 0.12)
+        self.client = OpenAI(api_key=api_key)
+        self.target_website = target_website.lower()
+        self.model = model
+        self.results = []
+        
+        self.rate_limits = {
+            "gpt-3.5-turbo": 0.02,
+            "gpt-4": 0.12,
+            "gpt-4o": 0.04,
+            "gpt-4o-mini": 0.04,
+            "gpt-4-turbo": 0.04
+        }
+        self.rate_limit = self.rate_limits.get(model, 0.12)
 
     def generate_search_prompts(self, query: str) -> List[str]:
         return [
