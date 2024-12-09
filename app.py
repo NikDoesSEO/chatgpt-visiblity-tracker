@@ -56,7 +56,7 @@ class ChatGPTTracker:
                 progress_bar.progress((idx + 1) / len(prompts))
 
             try:
-                response = openai.ChatCompletion.create(
+                response = openai.ChatCompletion.chat(
                     model=self.model,
                     messages=[
                         {"role": "system", "content": "You are a search expert. Provide numbered lists of relevant results based on market presence and popularity."},
