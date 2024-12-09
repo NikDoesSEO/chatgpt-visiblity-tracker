@@ -8,8 +8,8 @@ from statistics import mean, median
 from io import BytesIO
 
 # Initialize OpenAI client once with hardcoded API key
-client = OpenAI(api_key="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
-")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 
 class ChatGPTTracker:
     def __init__(self, brand: str, model: str = "gpt-3.5-turbo"):
