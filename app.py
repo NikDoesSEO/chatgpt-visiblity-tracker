@@ -1,5 +1,5 @@
 import streamlit as st
-import openai  # Correct import for OpenAI SDK
+from openai import OpenAI  # Updated import for OpenAI SDK v1.0.0+
 import pandas as pd
 from datetime import datetime
 import time
@@ -9,7 +9,8 @@ from io import BytesIO
 
 # Initialize OpenAI client
 try:
-    openai.api_key = st.secrets["OPENAI_API_KEY"]
+    api_key = st.secrets["OPENAI_API_KEY"]
+    client = OpenAI(api_key=api_key)
 except KeyError:
     st.error("OPENAI_API_KEY not found in secrets. Please add it in Streamlit Cloud settings.")
     st.stop()
@@ -60,7 +61,7 @@ class ChatGPTTracker:
                 progress_bar.progress((idx + 1) / len(prompts))
 
             try:
-                response = openai.ChatCompletion.create(
+                response = client.chat.completions.create(
                     model=self.model,
                     messages=[
                         {"role": "system", "content": "You are a search expert. Provide numbered lists of relevant results based on market presence and popularity."},
@@ -69,7 +70,7 @@ class ChatGPTTracker:
                     temperature=0.7
                 )
 
-                answer = response.choices[0].message["content"]
+                answer = response.choices[0].text
                 analysis = self.analyze_response(answer)
 
                 results.append({
