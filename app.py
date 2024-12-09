@@ -1,5 +1,4 @@
 import streamlit as st
-import openai
 from openai import OpenAI
 import pandas as pd
 from datetime import datetime
@@ -8,10 +7,12 @@ import re
 from statistics import mean, median
 from io import BytesIO
 
+# Initialize OpenAI client once with hardcoded API key
+client = OpenAI(api_key="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
+")
+
 class ChatGPTTracker:
-    def __init__(self, api_key: str, brand: str, model: str = "gpt-3.5-turbo"):
-        # Initialize OpenAI client
-        self.client = OpenAI(api_key=api_key)  # Pass API key directly to client
+    def __init__(self, brand: str, model: str = "gpt-3.5-turbo"):
         self.brand = brand.lower()
         self.model = model
     
@@ -27,14 +28,12 @@ class ChatGPTTracker:
     
     def analyze_response(self, text: str):
         """Analyze where the brand appears in the response"""
-        # Split into items, handling different list formats
         items = re.split(r'\n\d+\.|\n-|\n\*|\n(?=[A-Z])', text)
         items = [item.strip() for item in items if item.strip()]
         
         position = None
         context = None
         
-        # Find brand position and context
         for idx, item in enumerate(items, 1):
             if self.brand in item.lower():
                 position = idx
@@ -53,13 +52,12 @@ class ChatGPTTracker:
         results = []
         
         for idx, prompt in enumerate(prompts):
-            # Update progress
             if progress_bar:
                 progress_bar.progress((idx + 1) / len(prompts))
             
             try:
-                # Make API call
-                response = self.client.chat.completions.create(
+                # Use global client
+                response = client.chat.completions.create(
                     model=self.model,
                     messages=[
                         {"role": "system", "content": "You are a search expert. Provide numbered lists of relevant results based on market presence and popularity."},
@@ -68,7 +66,6 @@ class ChatGPTTracker:
                     temperature=0.7
                 )
                 
-                # Analyze response
                 answer = response.choices[0].message.content
                 analysis = self.analyze_response(answer)
                 
@@ -79,7 +76,6 @@ class ChatGPTTracker:
                     'context': analysis['context']
                 })
                 
-                # Rate limiting
                 time.sleep(0.5)
                 
             except Exception as e:
@@ -108,25 +104,21 @@ def main():
     st.title("Brand Visibility Checker")
     st.markdown("Track how often and where your brand appears in ChatGPT responses")
     
-    # Sidebar inputs
+    # Simplified inputs (removed API key)
     with st.sidebar:
-        api_key = st.text_input("OpenAI API Key", type="password")
         brand = st.text_input("Brand/Website to track")
         query = st.text_input("Search query")
         model = st.selectbox("Model", ["gpt-3.5-turbo", "gpt-4"])
         
         analyze = st.button("Analyze Visibility")
     
-    if analyze and api_key and brand and query:
+    if analyze and brand and query:
         try:
-            # Create tracker and progress bar
-            tracker = ChatGPTTracker(api_key, brand, model)
+            tracker = ChatGPTTracker(brand, model)
             progress = st.progress(0)
             
-            # Run analysis
             results = tracker.check_brand_visibility(query, progress)
             
-            # Display results
             col1, col2 = st.columns(2)
             
             with col1:
@@ -143,16 +135,12 @@ def main():
                     if result['position']:
                         st.write(f"Position {result['position']}: {result['context']}")
             
-            # Export option
             if st.button("Export Results"):
-                # Create Excel file
                 buffer = BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                    # Results sheet
                     pd.DataFrame(results['raw_results']).to_excel(
                         writer, sheet_name='Detailed Results', index=False
                     )
-                    # Summary sheet
                     pd.DataFrame([results['summary']]).to_excel(
                         writer, sheet_name='Summary', index=False
                     )
