@@ -8,7 +8,11 @@ from statistics import mean, median
 from io import BytesIO
 
 # Initialize OpenAI client
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+try:
+    openai.api_key = st.secrets["OPENAI_API_KEY"]
+except KeyError:
+    st.error("OPENAI_API_KEY not found in secrets. Please add it in Streamlit Cloud settings.")
+    st.stop()
 
 
 class ChatGPTTracker:
