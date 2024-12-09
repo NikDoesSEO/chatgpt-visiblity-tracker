@@ -11,11 +11,8 @@ from io import BytesIO
 
 class WebsitePositionTracker:
     def __init__(self, api_key: str, target_website: str, model: str = "gpt-3.5-turbo"):
-        self.client = OpenAI(
-            api_key=api_key,
-            timeout=60.0,
-            max_retries=3
-        )
+        # Initialize OpenAI client with minimal configuration
+        self.client = OpenAI(api_key=api_key)
         self.target_website = target_website.lower()
         self.model = model
         self.results = []
@@ -132,7 +129,6 @@ def main():
     st.title("ChatGPT Position Tracker")
     st.markdown("Track website/brand positions in ChatGPT responses")
     
-    # Sidebar for inputs
     with st.sidebar:
         st.header("Configuration")
         api_key = st.text_input("OpenAI API Key", type="password")
@@ -152,14 +148,11 @@ def main():
     if start_analysis and api_key and target_website and query:
         tracker = WebsitePositionTracker(api_key, target_website, models[model])
         
-        # Create progress bar
         progress_bar = st.progress(0)
         st.info("Analysis in progress...")
         
-        # Run analysis
         results = tracker.perform_searches(query, progress_bar=progress_bar)
         
-        # Display results
         col1, col2 = st.columns(2)
         
         with col1:
@@ -176,7 +169,6 @@ def main():
                 df = pd.DataFrame(positions, columns=['Position'])
                 st.bar_chart(df['Position'].value_counts())
         
-        # Detailed results in expandable section
         with st.expander("View Detailed Results"):
             for search in results['searches']:
                 st.markdown(f"### Search {search['search_number']}")
@@ -185,7 +177,6 @@ def main():
                 with st.expander("View Full Response"):
                     st.write(search.get('full_response'))
         
-        # Export button
         if st.button("Export to Excel"):
             df_detailed = pd.DataFrame(results['searches'])
             df_summary = pd.DataFrame([results['summary']])
