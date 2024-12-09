@@ -1,11 +1,12 @@
 import streamlit as st
-import openai  # Correct import for OpenAI SDK
+from openai  import OpenAI
 import pandas as pd
 from datetime import datetime
 import time
 import re
 from statistics import mean, median
 from io import BytesIO
+
 
 # Initialize OpenAI client
 openai.api_key = st.secrets["OPENAI_API_KEY"]
