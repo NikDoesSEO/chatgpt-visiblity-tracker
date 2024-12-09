@@ -11,7 +11,7 @@ from io import BytesIO
 
 class WebsitePositionTracker:
     def __init__(self, api_key: str, target_website: str, model: str = "gpt-3.5-turbo"):
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else api_key)
         self.target_website = target_website.lower()
         self.model = model
         self.results = []
