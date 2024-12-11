@@ -65,7 +65,7 @@ def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
     for i, prompt in enumerate(prompts):
         try:
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a search expert. Provide clear, numbered lists of relevant results."},
                     {"role": "user", "content": prompt}
