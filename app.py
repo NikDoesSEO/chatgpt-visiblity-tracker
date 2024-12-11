@@ -55,7 +55,7 @@ def analyze_response(response_text: str, brand_name: str) -> Dict:
         'mention_count': len(mentions)
     }
 
-async def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
+def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
     """Run the complete analysis using multiple prompts"""
     prompts = generate_prompts(query)
     results = []
@@ -87,6 +87,7 @@ async def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dic
             
             # Update progress
             progress_bar.progress((i + 1) / len(prompts))
+            time.sleep(0.1)  # Small delay to prevent rate limiting
             
         except Exception as e:
             st.error(f"Error in analysis: {str(e)}")
@@ -143,36 +144,33 @@ def main():
         
         submitted = st.form_submit_button("Analyze Brand Visibility")
     
+    # Analysis section
     if submitted and brand_name and search_query:
-        st.session_state.is_analyzing = True
-        
-        # Initialize progress bar
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
         try:
             # Initialize OpenAI client
             client = initialize_openai()
             
-            # Run analysis
+            # Show progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
             status_text.text("Running analysis...")
+            
+            # Run analysis
             results = run_analysis(client, brand_name, search_query, progress_bar)
             
             # Store results in session state
             st.session_state.analysis_results = results
-            st.session_state.is_analyzing = False
             
             # Clear progress indicators
             progress_bar.empty()
             status_text.empty()
             
+            # Display results
+            display_results(results)
+            
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             st.session_state.is_analyzing = False
-    
-    # Display results if available
-    if st.session_state.analysis_results is not None:
-        display_results(st.session_state.analysis_results)
 
 if __name__ == "__main__":
     main()
