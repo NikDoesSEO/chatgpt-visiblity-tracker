@@ -31,7 +31,17 @@ def generate_prompts(query: str) -> List[str]:
         f"What are the leading options for {query}? List them in order.",
         f"Rank the best solutions for {query}.",
         f"Which companies or websites are most relevant for {query}? List in order.",
-        f"What are the most popular choices for {query}? Rank them."
+        f"What are the most popular choices for {query}? Rank them.",
+        f"List the market leaders for {query}.",
+        f"What are the top-rated options for {query}?",
+        f"Rank the most recommended solutions for {query}.",
+        f"Which providers are most trusted for {query}? List in order.",
+        f"What are the best available options for {query}? Rank them.",
+        f"What is the best {query}?",
+        f"Which are the best {query} and why?",
+        f"What's the absolute best {query} available today?",
+        f"List the best {query} options from best to worst.",
+        f"Who offers the best {query} service?"
     ]
 
 def analyze_response(response_text: str, brand_name: str) -> Dict:
