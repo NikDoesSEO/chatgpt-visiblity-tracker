@@ -44,25 +44,32 @@ def generate_prompts(query: str) -> List[str]:
         f"Who offers the best {query} service?"
     ]
 
-def analyze_response(response_text: str, brand_name: str) -> Dict:
-    """Analyze a single response for brand mentions and position"""
+def analyze_response(response_text: str, brand_name: str, competitor_brand: str) -> Dict:
+    """Analyze a single response for both brands"""
     items = re.split(r'\n\d+\.|\n-|\n\*|\n(?=[A-Z])', response_text.lower())
     items = [item.strip() for item in items if item.strip()]
     
-    brand_name = brand_name.lower()
-    mentions = []
-    positions = []
-    
-    for idx, item in enumerate(items, 1):
-        if brand_name in item:
-            mentions.append(item)
-            positions.append(idx)
+    brand_results = {}
+    for brand in [brand_name, competitor_brand]:
+        if brand:  # Only analyze if brand name is provided
+            brand_lower = brand.lower()
+            mentions = []
+            positions = []
+            
+            for idx, item in enumerate(items, 1):
+                if brand_lower in item:
+                    mentions.append(item)
+                    positions.append(idx)
+            
+            brand_results[brand] = {
+                'mentions': mentions,
+                'positions': positions,
+                'mention_count': len(mentions)
+            }
     
     return {
-        'mentions': mentions,
-        'positions': positions,
-        'total_items': len(items),
-        'mention_count': len(mentions)
+        'brand_results': brand_results,
+        'total_items': len(items)
     }
 
 def analyze_top_brands(results: Dict) -> Dict:
@@ -99,14 +106,14 @@ def analyze_top_brands(results: Dict) -> Dict:
     return {
         'top_mentioned': sorted_brands[:3]
     }
-    
 
-def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) -> Dict:
+def run_analysis(client, brand_name: str, competitor_brand: str, query: str, model: str, progress_bar) -> Dict:
     """Run the complete analysis using multiple prompts"""
     prompts = generate_prompts(query)
     results = []
-    total_mentions = 0
-    all_positions = []
+    brand_totals = {brand_name: {'mentions': 0, 'positions': []} for brand in [brand_name, competitor_brand] if brand}
+    if competitor_brand:
+        brand_totals[competitor_brand] = {'mentions': 0, 'positions': []}
     
     for i, prompt in enumerate(prompts):
         try:
@@ -125,7 +132,7 @@ def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) 
             )
             
             response_text = response.choices[0].message.content
-            analysis = analyze_response(response_text, brand_name)
+            analysis = analyze_response(response_text, brand_name, competitor_brand)
             
             results.append({
                 'prompt': prompt,
@@ -133,8 +140,11 @@ def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) 
                 'analysis': analysis
             })
             
-            total_mentions += analysis['mention_count']
-            all_positions.extend(analysis['positions'])
+            # Aggregate results for each brand
+            for brand in brand_totals:
+                if brand in analysis['brand_results']:
+                    brand_totals[brand]['mentions'] += analysis['brand_results'][brand]['mention_count']
+                    brand_totals[brand]['positions'].extend(analysis['brand_results'][brand]['positions'])
             
             # Update progress
             progress_bar.progress((i + 1) / len(prompts))
@@ -143,32 +153,42 @@ def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) 
         except Exception as e:
             st.error(f"Error in analysis: {str(e)}")
     
-    # Calculate summary statistics
-    avg_position = sum(all_positions) / len(all_positions) if all_positions else 0
+    # Calculate summary statistics for each brand
+    summary = {}
+    for brand in brand_totals:
+        positions = brand_totals[brand]['positions']
+        avg_position = sum(positions) / len(positions) if positions else 0
+        summary[brand] = {
+            'total_mentions': brand_totals[brand]['mentions'],
+            'average_position': round(avg_position, 2),
+            'times_ranked': len(positions),
+            'rankings': positions
+        }
     
     return {
         'detailed_results': results,
-        'summary': {
-            'total_mentions': total_mentions,
-            'average_position': round(avg_position, 2),
-            'times_ranked': len(all_positions),
-            'rankings': all_positions
-        }
+        'summary': summary
     }
 
 def display_results(results: Dict):
     """Display analysis results in a structured format"""
-    summary = results['summary']
+    # Get brands from results
+    brands = list(results['summary'].keys())
     
-    # Display summary metrics
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Total Mentions", summary['total_mentions'])
-    with col2:
-        st.metric("Average Position", f"#{summary['average_position']}")
+    # Create columns for each brand plus one for general stats
+    cols = st.columns(len(brands))
+    
+    # Display metrics for each brand
+    for idx, brand in enumerate(brands):
+        with cols[idx]:
+            st.subheader(f"{brand} Metrics")
+            summary = results['summary'][brand]
+            st.metric("Total Mentions", summary['total_mentions'])
+            st.metric("Average Position", f"#{summary['average_position']}")
+            st.metric("Times Ranked", summary['times_ranked'])
     
     # Display top brands analysis
-    st.subheader("Top Mentioned Brands")
+    st.subheader("Top Mentioned Brands Overall")
     top_brands = analyze_top_brands(results)
     
     for i, (brand, count) in enumerate(top_brands['top_mentioned'], 1):
@@ -179,8 +199,11 @@ def display_results(results: Dict):
         for result in results['detailed_results']:
             st.subheader(f"Prompt: {result['prompt']}")
             st.write("Response:", result['response'])
-            st.write("Mentions:", len(result['analysis']['mentions']))
-            st.write("Positions:", result['analysis']['positions'])
+            for brand in brands:
+                if brand in result['analysis']['brand_results']:
+                    analysis = result['analysis']['brand_results'][brand]
+                    st.write(f"{brand} Mentions: {len(analysis['mentions'])}")
+                    st.write(f"{brand} Positions: {analysis['positions']}")
             st.divider()
 
 def main():
@@ -198,9 +221,10 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
-            brand_name = st.text_input("Brand Name", placeholder="e.g., Apple")
+            brand_name = st.text_input("Your Brand Name", placeholder="e.g., Tyk")
+            competitor_brand = st.text_input("Competitor Brand (Optional)", placeholder="e.g., Kong")
         with col2:
-            search_query = st.text_input("Search Query", placeholder="e.g., smartphone")
+            search_query = st.text_input("Search Query", placeholder="e.g., API Gateway")
         
         submitted = st.form_submit_button("Analyze Brand Visibility")
     
@@ -216,7 +240,7 @@ def main():
             status_text.text("Running analysis...")
             
             # Run analysis with selected model
-            results = run_analysis(client, brand_name, search_query, model_choice, progress_bar)
+            results = run_analysis(client, brand_name, competitor_brand, search_query, model_choice, progress_bar)
             
             # Store results in session state
             st.session_state.analysis_results = results
