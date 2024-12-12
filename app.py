@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import openai
 from typing import List, Dict
@@ -292,4 +291,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
