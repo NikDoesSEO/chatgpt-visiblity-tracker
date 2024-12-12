@@ -288,6 +288,11 @@ def main():
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             st.session_state.is_analyzing = False
- # Add footer
+    
+    # Add footer with empty space before it
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("Created by Nik, a freelance SEO consultant. Let's connect [www.nikdoesseo.com](https://www.nikdoesseo.com)!")
+
 if __name__ == "__main__":
     main()
