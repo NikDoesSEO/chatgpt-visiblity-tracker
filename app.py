@@ -288,6 +288,8 @@ def main():
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
             st.session_state.is_analyzing = False
-
+ # Add footer
+    st.markdown("---")  # Add a horizontal line
+    st.markdown("Created by Nik, a freelance SEO consultant. Let's connect [www.nikdoesseo.com](https://www.nikdoesseo.com)!")
 if __name__ == "__main__":
     main()
