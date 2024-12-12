@@ -2,6 +2,7 @@ import streamlit as st
 import openai
 from typing import List, Dict
 import pandas as pd
+import plotly.express as px
 import time
 from datetime import datetime
 import re
@@ -73,28 +74,18 @@ def analyze_response(response_text: str, brand_name: str, competitor_brand: str)
     }
 
 def analyze_top_brands(results: Dict) -> Dict:
-    """Analyze all responses to find top mentioned brands"""
+    """Analyze all responses to find all mentioned brands"""
     brand_mentions = {}
     
     for result in results['detailed_results']:
-        # Split into lines and process numbered items
         lines = result['response'].split('\n')
         for line in lines:
-            # Look for numbered list items
             if re.match(r'^\d+\.', line):
-                # Extract the text after the number until a dash or period
                 match = re.search(r'^\d+\.\s*(.*?)(?:\s*-|\.|$)', line)
                 if match:
-                    # Get the brand name part
                     brand = match.group(1).strip()
-                    
-                    # Handle cases with parentheses
                     brand = re.sub(r'\s*\([^)]*\)', '', brand)
-                    
-                    # Special handling for common prefixes
                     brand = re.sub(r'^(Amazon Web Services|Microsoft Azure|Google Cloud Platform)\s+', r'\1 ', brand, flags=re.IGNORECASE)
-                    
-                    # Clean up the brand name
                     brand = brand.strip()
                     
                     if brand and len(brand) > 1:
@@ -104,7 +95,8 @@ def analyze_top_brands(results: Dict) -> Dict:
     sorted_brands = sorted(brand_mentions.items(), key=lambda x: x[1], reverse=True)
     
     return {
-        'top_mentioned': sorted_brands[:3]
+        'top_mentioned': sorted_brands[:3],  # For text display
+        'all_brands': sorted_brands  # For pie chart
     }
 
 def run_analysis(client, brand_name: str, competitor_brand: str, query: str, model: str, progress_bar) -> Dict:
@@ -188,11 +180,35 @@ def display_results(results: Dict):
             st.metric("Times Ranked", summary['times_ranked'])
     
     # Display top brands analysis
-    st.subheader("Top Mentioned Brands Overall")
+    st.subheader("Top Mentioned Brands")
     top_brands = analyze_top_brands(results)
     
+    # Display top 3 brands as text
     for i, (brand, count) in enumerate(top_brands['top_mentioned'], 1):
         st.write(f"{i}. {brand.title()} - {count} mentions")
+    
+    # Add pie chart visualization
+    st.subheader("All Brand Mentions Distribution")
+    
+    # Convert data to DataFrame
+    df = pd.DataFrame(top_brands['all_brands'], columns=['Brand', 'Mentions'])
+    
+    # Create pie chart
+    fig = px.pie(df, 
+                 values='Mentions', 
+                 names='Brand',
+                 title='Distribution of Brand Mentions',
+                 hole=0.3)
+    
+    # Update layout
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
     
     # Display detailed results in an expander
     with st.expander("View Detailed Results"):
