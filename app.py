@@ -188,23 +188,35 @@ def display_results(results: Dict):
         st.write(f"{i}. {brand.title()} - {count} mentions")
     
     # Add pie chart visualization
-    st.subheader("All Brand Mentions Distribution")
+     st.subheader("All Brand Mentions Distribution")
     
     # Convert data to DataFrame
     df = pd.DataFrame(top_brands['all_brands'], columns=['Brand', 'Mentions'])
     
-    # Create pie chart
+    # Create pie chart with modified layout
     fig = px.pie(df, 
                  values='Mentions', 
                  names='Brand',
-                 title='Distribution of Brand Mentions',
-                 hole=0.3)
+                 title='Distribution of Brand Mentions')
     
-    # Update layout
+    # Update layout with adjusted positions
     fig.update_traces(textposition='inside', textinfo='percent+label')
     fig.update_layout(
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        legend=dict(
+            orientation="h",  # horizontal legend
+            yanchor="bottom",
+            y=-0.5,         # move legend lower
+            xanchor="center",
+            x=0.5           # center the legend
+        ),
+        title=dict(
+            y=0.95,         # move title to top
+            x=0.5,
+            xanchor='center',
+            yanchor='top'
+        ),
+        margin=dict(t=100, b=100)  # add more margin at top and bottom
     )
     
     # Display the chart
