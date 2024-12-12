@@ -8,7 +8,7 @@ import re
 
 # Configure the page
 st.set_page_config(
-    page_title="Brand Visibility Analyzer",
+    page_title="ChatGPT Visibility and Ranking Tracker",
     page_icon="🔍",
     layout="wide"
 )
@@ -65,7 +65,32 @@ def analyze_response(response_text: str, brand_name: str) -> Dict:
         'mention_count': len(mentions)
     }
 
-def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
+def analyze_top_brands(results: Dict) -> Dict:
+    """Analyze all responses to find top mentioned brands"""
+    brand_mentions = {}
+    
+    for result in results['detailed_results']:
+        # Split response into items
+        items = result['response'].lower().split('\n')
+        
+        # Process each item
+        for item in items:
+            # Find company names
+            potential_brands = re.findall(r'([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*(?:\s*(?:Inc|Ltd|LLC|Corporation|Corp|Company|Co))?)', item)
+            
+            for brand in potential_brands:
+                brand = brand.strip()
+                if brand and len(brand) > 2:  # Avoid very short strings
+                    brand_mentions[brand] = brand_mentions.get(brand, 0) + 1
+    
+    # Sort brands by mention count
+    sorted_brands = sorted(brand_mentions.items(), key=lambda x: x[1], reverse=True)
+    
+    return {
+        'top_mentioned': sorted_brands[:3]
+    }
+
+def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) -> Dict:
     """Run the complete analysis using multiple prompts"""
     prompts = generate_prompts(query)
     results = []
@@ -75,7 +100,7 @@ def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
     for i, prompt in enumerate(prompts):
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=model,
                 messages=[
                     {"role": "system", "content": "You are a search expert. Provide clear, numbered lists of relevant results."},
                     {"role": "user", "content": prompt}
@@ -104,14 +129,12 @@ def run_analysis(client, brand_name: str, query: str, progress_bar) -> Dict:
     
     # Calculate summary statistics
     avg_position = sum(all_positions) / len(all_positions) if all_positions else 0
-    mention_density = total_mentions / len(prompts)
     
     return {
         'detailed_results': results,
         'summary': {
             'total_mentions': total_mentions,
             'average_position': round(avg_position, 2),
-            'mention_density': round(mention_density * 100, 2),
             'times_ranked': len(all_positions),
             'rankings': all_positions
         }
@@ -122,13 +145,18 @@ def display_results(results: Dict):
     summary = results['summary']
     
     # Display summary metrics
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         st.metric("Total Mentions", summary['total_mentions'])
     with col2:
         st.metric("Average Position", f"#{summary['average_position']}")
-    with col3:
-        st.metric("Mention Density", f"{summary['mention_density']}%")
+    
+    # Display top brands analysis
+    st.subheader("Top Mentioned Brands")
+    top_brands = analyze_top_brands(results)
+    
+    for i, (brand, count) in enumerate(top_brands['top_mentioned'], 1):
+        st.write(f"{i}. {brand.title()} - {count} mentions")
     
     # Display detailed results in an expander
     with st.expander("View Detailed Results"):
@@ -141,16 +169,22 @@ def display_results(results: Dict):
 
 def main():
     # Header
-    st.title("🔍 Brand Visibility Analyzer")
+    st.title("🔍 ChatGPT Visibility and Ranking Tracker")
     st.markdown("Analyze how your brand appears in ChatGPT's responses. Enter your brand name and a search query to get detailed insights.")
     
     # Input section
     with st.form("analysis_form"):
+        # Model selection
+        model_choice = st.selectbox(
+            "Select GPT Model",
+            ["gpt-3.5-turbo", "gpt-4o", "gpt-4o-mini"]
+        )
+        
         col1, col2 = st.columns(2)
         with col1:
-            brand_name = st.text_input("Brand Name", placeholder="e.g., Apple")
+            brand_name = st.text_input("Brand Name", placeholder="e.g., Tesla")
         with col2:
-            search_query = st.text_input("Search Query", placeholder="e.g., smartphone")
+            search_query = st.text_input("Search Query", placeholder="e.g., electric cars")
         
         submitted = st.form_submit_button("Analyze Brand Visibility")
     
@@ -165,8 +199,8 @@ def main():
             status_text = st.empty()
             status_text.text("Running analysis...")
             
-            # Run analysis
-            results = run_analysis(client, brand_name, search_query, progress_bar)
+            # Run analysis with selected model
+            results = run_analysis(client, brand_name, search_query, model_choice, progress_bar)
             
             # Store results in session state
             st.session_state.analysis_results = results
