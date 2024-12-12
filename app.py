@@ -69,36 +69,28 @@ def analyze_top_brands(results: Dict) -> Dict:
     """Analyze all responses to find top mentioned brands"""
     brand_mentions = {}
     
-    # Common words to filter out
-    common_words = {'the', 'and', 'or', 'in', 'at', 'by', 'for', 'with', 'to', 'a', 'an', 
-                   'of', 'is', 'are', 'was', 'were', 'best', 'top', 'good', 'great', 'leading'}
-    
     for result in results['detailed_results']:
         # Split into lines and process numbered items
         lines = result['response'].split('\n')
         for line in lines:
             # Look for numbered list items
             if re.match(r'^\d+\.', line):
-                # Extract the text after the number
-                item_text = re.sub(r'^\d+\.\s*', '', line)
-                
-                # Try to extract brand name (before dash, comma, or descriptive text)
-                brand_match = re.match(r'^([^,.-]+)', item_text)
-                if brand_match:
-                    brand = brand_match.group(1).strip()
+                # Extract the text after the number until a dash or period
+                match = re.search(r'^\d+\.\s*(.*?)(?:\s*-|\.|$)', line)
+                if match:
+                    # Get the brand name part
+                    brand = match.group(1).strip()
+                    
+                    # Handle cases with parentheses
+                    brand = re.sub(r'\s*\([^)]*\)', '', brand)
+                    
+                    # Special handling for common prefixes
+                    brand = re.sub(r'^(Amazon Web Services|Microsoft Azure|Google Cloud Platform)\s+', r'\1 ', brand, flags=re.IGNORECASE)
                     
                     # Clean up the brand name
-                    brand = re.sub(r'\s+', ' ', brand)  # Normalize spaces
-                    brand = re.sub(r'\([^)]*\)', '', brand)  # Remove parentheses and their contents
                     brand = brand.strip()
                     
-                    # Filter out invalid brands
-                    if (len(brand.split()) <= 3  # Maximum 3 words for brand names
-                        and brand.lower() not in common_words
-                        and len(brand) > 1 
-                        and not brand.startswith(('http', 'www'))
-                        and not brand.isdigit()
-                        and not all(c.isprintable() and c.isascii() for c in brand)):
+                    if brand and len(brand) > 1:
                         brand_mentions[brand] = brand_mentions.get(brand, 0) + 1
     
     # Sort brands by mention count
@@ -107,6 +99,7 @@ def analyze_top_brands(results: Dict) -> Dict:
     return {
         'top_mentioned': sorted_brands[:3]
     }
+    
 
 def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) -> Dict:
     """Run the complete analysis using multiple prompts"""
