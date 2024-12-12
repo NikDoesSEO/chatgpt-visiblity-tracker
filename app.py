@@ -254,10 +254,10 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
-            brand_name = st.text_input("Your Brand Name", placeholder="e.g., Tyk")
-            competitor_brand = st.text_input("Competitor Brand (Optional)", placeholder="e.g., Kong")
+            brand_name = st.text_input("Your Brand Name", placeholder="e.g., Tesla")
+            competitor_brand = st.text_input("Competitor Brand (Optional)", placeholder="e.g., BMW")
         with col2:
-            search_query = st.text_input("Search Query", placeholder="e.g., API Gateway")
+            search_query = st.text_input("Search Query", placeholder="e.g., cheap electric car")
         
         submitted = st.form_submit_button("Analyze Brand Visibility")
     
