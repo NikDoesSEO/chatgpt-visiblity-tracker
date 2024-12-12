@@ -69,19 +69,37 @@ def analyze_top_brands(results: Dict) -> Dict:
     """Analyze all responses to find top mentioned brands"""
     brand_mentions = {}
     
+    # Common words to filter out
+    common_words = {'the', 'and', 'or', 'in', 'at', 'by', 'for', 'with', 'to', 'a', 'an', 
+                   'of', 'is', 'are', 'was', 'were', 'best', 'top', 'good', 'great', 'leading'}
+    
     for result in results['detailed_results']:
-        # Split response into items
-        items = result['response'].lower().split('\n')
-        
-        # Process each item
-        for item in items:
-            # Find company names
-            potential_brands = re.findall(r'([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)*(?:\s*(?:Inc|Ltd|LLC|Corporation|Corp|Company|Co))?)', item)
-            
-            for brand in potential_brands:
-                brand = brand.strip()
-                if brand and len(brand) > 2:  # Avoid very short strings
-                    brand_mentions[brand] = brand_mentions.get(brand, 0) + 1
+        # Split into lines and process numbered items
+        lines = result['response'].split('\n')
+        for line in lines:
+            # Look for numbered list items
+            if re.match(r'^\d+\.', line):
+                # Extract the text after the number
+                item_text = re.sub(r'^\d+\.\s*', '', line)
+                
+                # Try to extract brand name (before dash, comma, or descriptive text)
+                brand_match = re.match(r'^([^,.-]+)', item_text)
+                if brand_match:
+                    brand = brand_match.group(1).strip()
+                    
+                    # Clean up the brand name
+                    brand = re.sub(r'\s+', ' ', brand)  # Normalize spaces
+                    brand = re.sub(r'\([^)]*\)', '', brand)  # Remove parentheses and their contents
+                    brand = brand.strip()
+                    
+                    # Filter out invalid brands
+                    if (len(brand.split()) <= 3  # Maximum 3 words for brand names
+                        and brand.lower() not in common_words
+                        and len(brand) > 1 
+                        and not brand.startswith(('http', 'www'))
+                        and not brand.isdigit()
+                        and not all(c.isprintable() and c.isascii() for c in brand)):
+                        brand_mentions[brand] = brand_mentions.get(brand, 0) + 1
     
     # Sort brands by mention count
     sorted_brands = sorted(brand_mentions.items(), key=lambda x: x[1], reverse=True)
@@ -102,7 +120,12 @@ def run_analysis(client, brand_name: str, query: str, model: str, progress_bar) 
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a search expert. Provide clear, numbered lists of relevant results."},
+                    {"role": "system", "content": """You are a search expert. Provide clear, numbered lists with brand/company names at the start of each item. 
+                     Format each line as: '1. [Brand Name] - description'. Always start with the company/brand name followed by details.
+                     Example format:
+                     1. Apple - Leading technology company known for iPhone
+                     2. Samsung - Major electronics manufacturer
+                     Keep responses focused on actual company and brand names."""},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7
@@ -182,9 +205,9 @@ def main():
         
         col1, col2 = st.columns(2)
         with col1:
-            brand_name = st.text_input("Brand Name", placeholder="e.g., Tesla")
+            brand_name = st.text_input("Brand Name", placeholder="e.g., Apple")
         with col2:
-            search_query = st.text_input("Search Query", placeholder="e.g., electric cars")
+            search_query = st.text_input("Search Query", placeholder="e.g., smartphone")
         
         submitted = st.form_submit_button("Analyze Brand Visibility")
     
