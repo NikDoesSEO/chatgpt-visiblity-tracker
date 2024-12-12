@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import openai
 from typing import List, Dict
@@ -187,11 +188,15 @@ def display_results(results: Dict):
     for i, (brand, count) in enumerate(top_brands['top_mentioned'], 1):
         st.write(f"{i}. {brand.title()} - {count} mentions")
     
-    # Add pie chart visualization
-     st.subheader("All Brand Mentions Distribution")
+    # Add pie chart visualization with improved layout
+    st.subheader("All Brand Mentions Distribution")
     
     # Convert data to DataFrame
     df = pd.DataFrame(top_brands['all_brands'], columns=['Brand', 'Mentions'])
+    
+    # Calculate total mentions for percentage
+    total_mentions = df['Mentions'].sum()
+    df['Percentage'] = df['Mentions'] / total_mentions * 100
     
     # Create pie chart with modified layout
     fig = px.pie(df, 
@@ -199,24 +204,25 @@ def display_results(results: Dict):
                  names='Brand',
                  title='Distribution of Brand Mentions')
     
-    # Update layout with adjusted positions
+    # Update layout with better positioning
     fig.update_traces(textposition='inside', textinfo='percent+label')
     fig.update_layout(
         showlegend=True,
         legend=dict(
-            orientation="h",  # horizontal legend
+            orientation="h",
             yanchor="bottom",
-            y=-0.5,         # move legend lower
+            y=-0.5,
             xanchor="center",
-            x=0.5           # center the legend
+            x=0.5
         ),
         title=dict(
-            y=0.95,         # move title to top
+            y=0.95,
             x=0.5,
             xanchor='center',
             yanchor='top'
         ),
-        margin=dict(t=100, b=100)  # add more margin at top and bottom
+        margin=dict(t=100, b=100),  # Add more margin at top and bottom
+        height=800  # Increase height to accommodate legend
     )
     
     # Display the chart
@@ -286,3 +292,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
